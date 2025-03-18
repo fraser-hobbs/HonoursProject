@@ -5,7 +5,7 @@ using Confluent.Kafka;
 using DataConnector.Config;
 using DataConnector.Interfaces;
 using DataConnector.Models;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace DataConnector.Services
 {
@@ -13,10 +13,12 @@ namespace DataConnector.Services
     {
         private readonly IProducer<string, string> _producer;
         private readonly DataConnectorConfig _config;
+        private readonly ILogger<KafkaConnector> _logger;
 
-        public KafkaConnector(DataConnectorConfig config, IProducer<string, string>? producer = null)
+        public KafkaConnector(DataConnectorConfig config, ILogger<KafkaConnector> logger, IProducer<string, string>? producer = null)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             var producerConfig = new ProducerConfig
             {
@@ -26,7 +28,7 @@ namespace DataConnector.Services
 
             _producer = producer ?? new ProducerBuilder<string, string>(producerConfig).Build();
 
-            Log.Debug("KafkaConnector initialized with configuration:\n{KafkaConfig}",
+            _logger.LogDebug("KafkaConnector initialized with configuration:\n{KafkaConfig}",
                 JsonSerializer.Serialize(new
                 {
                     _config.ClientId,
@@ -36,45 +38,50 @@ namespace DataConnector.Services
             );
         }
 
-        public async Task SendMessageAsync<T>(KafkaMessage<T> message)
+        public async Task SendMessageAsync(object payload)
         {
-            var jsonPayload = JsonSerializer.Serialize(message, new JsonSerializerOptions
+            var kafkaMessage = new KafkaMessage<object>
             {
-                WriteIndented = true, // Pretty-print JSON
+                Source = _config.ClientId,
+                Payload = payload
+            };
+
+            var jsonPayload = JsonSerializer.Serialize(kafkaMessage.Payload, new JsonSerializerOptions
+            {
+                WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-            var kafkaMessage = new Message<string, string>
+            var messageToSend = new Message<string, string>
             {
-                Key = message.Source,
+                Key = kafkaMessage.Source,
                 Value = jsonPayload
             };
 
             try
             {
-                var deliveryResult = await _producer.ProduceAsync(_config.KafkaTopic, kafkaMessage);
-
+                var deliveryResult = await _producer.ProduceAsync(_config.KafkaTopic, messageToSend);
                 if (_producer == null)
                 {
                     throw new InvalidOperationException("KafkaProducer is null after initialization!");
                 }
 
-                Log.Debug("KafkaConnector initialized with producer: {Producer}", _producer);
+                _logger.LogDebug("KafkaConnector initialized with producer: {Producer}", _producer);
                 
-                Log.Information("Message successfully sent to Kafka:\n{MessageDetails}",
+                _logger.LogInformation("Message successfully sent to Kafka:\n{MessageDetails}",
                     JsonSerializer.Serialize(new
                     {
                         deliveryResult.Topic,
                         deliveryResult.Partition,
                         deliveryResult.Offset,
-                        Key = message.Source,
-                        Payload = message
+                        Key = kafkaMessage.Source,
+                        Payload = kafkaMessage.Payload
                     }, new JsonSerializerOptions { WriteIndented = true })
                 );
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error sending message to Kafka topic {Topic}", _config.KafkaTopic);
+                _logger.LogError(ex, "Error sending message to Kafka topic {Topic}", _config.KafkaTopic);
                 throw;
             }
         }
