@@ -20,14 +20,17 @@ jobs:
         with:
           dotnet-version: '8.0'
           source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-        env: 
-          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Authenticate with GitHub Packages
         run: dotnet nuget add source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
 
+      - name: Restore Dependencies
+        run: dotnet restore DataConnector/DataConnector.csproj
+
       - name: Build & Pack DataConnector
-        run: dotnet pack DataConnector/DataConnector.csproj --configuration Release
+        run: dotnet pack DataConnector/DataConnector.csproj --configuration Release --output ./packages
 
       - name: Publish to GitHub Packages
-        run: dotnet nuget push DataConnector/bin/Release/*.nupkg --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
+        run: dotnet nuget push ./packages/*.nupkg --source github --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate

@@ -6,11 +6,16 @@
         <Authors>Fraser Hobbs</Authors>
         <Description>A connector library for data operations.</Description>
         <RepositoryUrl>https://github.com/fraser-hobbs/HonoursProject</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
         <PackageTags>data;connector;kafka</PackageTags>
-        <OutputPath>bin/Release</OutputPath>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <EnablePackageValidation>true</EnablePackageValidation>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
