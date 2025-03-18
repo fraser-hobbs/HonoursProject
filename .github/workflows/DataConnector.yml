@@ -24,7 +24,12 @@ jobs:
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Authenticate with GitHub Packages
-        run: dotnet nuget add source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
+        run: |
+          if ! dotnet nuget list source | grep -q "github"; then
+            dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --name github --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
+          else
+            echo "NuGet source 'github' already exists. Skipping addition."
+          fi
 
       - name: Restore Dependencies
         run: dotnet restore DataConnector/DataConnector.csproj
