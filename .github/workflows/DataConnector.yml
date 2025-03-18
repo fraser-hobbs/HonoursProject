@@ -35,7 +35,10 @@ jobs:
       - name: Restore Dependencies
         run: dotnet restore DataConnector/DataConnector.csproj
 
-      - name: Build & Pack DataConnector
+      - name: Build DataConnector
+        run: dotnet build DataConnector/DataConnector.csproj --configuration Release
+
+      - name: Pack DataConnector
         run: dotnet pack DataConnector/DataConnector.csproj --configuration Release --output ./packages
 
       - name: Publish to GitHub Packages
