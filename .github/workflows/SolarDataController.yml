@@ -22,11 +22,13 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image
+        working-directory: SolarDataController 
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f SolarDataController/Dockerfile SolarDataController/
+          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f Dockerfile .
 
       - name: Push Docker image to GHCR
+        working-directory: SolarDataController 
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker push ghcr.io/$REPO_NAME/solardatacontroller:latest
