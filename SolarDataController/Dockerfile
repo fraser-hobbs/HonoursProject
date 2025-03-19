@@ -9,11 +9,11 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy and restore dependencies
-COPY ["SolarDataController/SolarDataController.csproj", "SolarDataController/"]
-RUN dotnet restore "SolarDataController/SolarDataController.csproj"
+COPY ["./SolarDataController/SolarDataController.csproj", "./SolarDataController/"]
+RUN dotnet restore "./SolarDataController/SolarDataController.csproj"
 
 # Copy full project and build
-COPY SolarDataController/ SolarDataController/
+COPY ./SolarDataController ./SolarDataController/
 WORKDIR "/src/SolarDataController"
 RUN dotnet build "SolarDataController.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
