@@ -1,30 +1,25 @@
-﻿FROM mcr.microsoft.com/dotnet/runtime:9.0 AS base
-USER $APP_UID
-ENV DOTNET_ENVIRONMENT=Production 
-WORKDIR /app
-
-# Build stage
+﻿# Stage 1: Build the application
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /app
 
 # Copy and restore dependencies
-COPY ["./SolarDataController/SolarDataController.csproj", "./SolarDataController/"]
-RUN dotnet restore "./SolarDataController/SolarDataController.csproj"
+COPY SolarDataController.csproj ./
+RUN dotnet restore
 
-# Copy full project and build
-COPY ./SolarDataController ./SolarDataController/
-WORKDIR "/src/SolarDataController"
-RUN dotnet build "SolarDataController.csproj" -c $BUILD_CONFIGURATION -o /app/build
+# Copy the remaining source code and build the application
+COPY . ./
+RUN dotnet publish -c Release -o /app/out
 
-# Publish stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "SolarDataController.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# Final runtime image
-FROM base AS final
+# Stage 2: Create the runtime image
+FROM mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim
 WORKDIR /app
-COPY --from=publish /app/publish .
 
-ENTRYPOINT ["dotnet", "SolarDataController.dll"]
+# Copy the application from the build stage
+COPY --from=build /app/out .
+
+# Set up a non-root user
+RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
+USER appuser
+
+# Run the application
+ENTRYPOINT ["./SolarDataController"]

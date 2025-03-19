@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup NuGet
         run: |
           if ! dotnet nuget list source | grep -q "github"; then
@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Docker image
         working-directory: SolarDataController  # Ensure correct build context
-        run: | 
+        run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f Dockerfile .
 
