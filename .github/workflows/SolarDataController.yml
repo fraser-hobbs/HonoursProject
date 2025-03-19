@@ -17,16 +17,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Setup NuGet
+        run: dotnet nuget add source "https://nuget.pkg.github.com/fraser-hobbs/index.json" \
+          --name github --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} \
+          --store-password-in-clear-text
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image
+        working-directory: SolarDataController  # Ensure correct build context
         run: | 
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f SolarDataController/Dockerfile .
+          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f Dockerfile .
 
       - name: Push Docker image to GHCR
+        working-directory: SolarDataController  # Ensure correct working directory
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker push ghcr.io/$REPO_NAME/solardatacontroller:latest
