@@ -24,7 +24,7 @@ jobs:
       - name: Build Docker image
         run: | 
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f SolarDataController/Dockerfile
+          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f SolarDataController/Dockerfile .
 
       - name: Push Docker image to GHCR
         run: |
