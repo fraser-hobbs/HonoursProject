@@ -1,9 +1,5 @@
 using System.Text.Json;
-using DataConnector;
 using DataConnector.Interfaces;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using SolarDataController.Models;
 using SolarDataController.Services;
 
 namespace SolarDataController;
