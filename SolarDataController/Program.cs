@@ -19,9 +19,9 @@ var host = Host.CreateDefaultBuilder(args)
         {
             var config = new DataConnectorConfig
             {
-                KafkaServer = "localhost:9092",
-                KafkaTopic = "solar-data",
-                ClientId = "solar-controller"
+                KafkaServer = Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS") ?? "localhost:9092",
+                KafkaTopic = Environment.GetEnvironmentVariable("KAFKA_TOPIC") ?? "solar-data",
+                ClientId = Environment.GetEnvironmentVariable("Conn_Id") ?? "solar-0x1"
             };
             services.AddSingleton(config);
             services.AddSingleton<IDataConnector, KafkaConnector>();
