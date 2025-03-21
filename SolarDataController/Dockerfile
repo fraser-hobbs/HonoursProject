@@ -2,9 +2,16 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
 
-# Copy and restore dependencies
+# Copy project file
 COPY SolarDataController.csproj ./
-RUN dotnet restore --disable-parallel --verbosity normal
+
+# Set up authentication for GitHub Packages
+ARG GITHUB_PAT
+ARG GITHUB_USR
+RUN dotnet nuget add source "https://nuget.pkg.github.com/fraser-hobbs/index.json" \
+    --username "$GITHUB_USR" \
+    --password "$GITHUB_PAT" \
+    --store-password-in-clear-text
 
 # Copy the remaining source code and build the application
 COPY . ./
