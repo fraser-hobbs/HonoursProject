@@ -45,10 +45,11 @@ jobs:
       - name: Build Docker image
         working-directory: ./SolarDataController
         run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker build -f Dockerfile \
             --build-arg GITHUB_PAT=${{ secrets.GITHUB_TOKEN }} \
             --build-arg GITHUB_USR=${{ github.actor }} \
-            -t ghcr.io/${{ github.repository }}/solardatacontroller:latest .
+            -t ghcr.io/$REPO_NAME/solardatacontroller:latest .
 
       - name: Push Docker image to GHCR
         working-directory: ./SolarDataController  # Ensure correct working directory
