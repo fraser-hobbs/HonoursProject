@@ -37,7 +37,7 @@ jobs:
         working-directory: SolarDataController  # Ensure correct build context
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_NAME/solardatacontroller:latest -f Dockerfile .
+          docker build -f SolarDataController/Dockerfile -t ghcr.io/$REPO_NAME/solardatacontroller:latest .
 
       - name: Push Docker image to GHCR
         working-directory: SolarDataController  # Ensure correct working directory
