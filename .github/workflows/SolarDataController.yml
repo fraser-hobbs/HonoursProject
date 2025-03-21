@@ -34,7 +34,6 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image
-        working-directory: SolarDataController  # Ensure correct build context
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker build -f SolarDataController/Dockerfile -t ghcr.io/$REPO_NAME/solardatacontroller:latest .
