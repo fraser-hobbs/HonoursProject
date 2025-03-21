@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy and restore dependencies
 COPY SolarDataController.csproj ./
-RUN dotnet restore
+RUN dotnet restore --disable-parallel --verbosity normal
 
 # Copy the remaining source code and build the application
 COPY . ./

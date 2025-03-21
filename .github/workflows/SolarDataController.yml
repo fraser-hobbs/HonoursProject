@@ -29,18 +29,22 @@ jobs:
           else
             echo "NuGet source 'github' already exists. Skipping addition."
           fi
+          
+      - name: Setup .NET and Restore Dependencies
+        run: |
+          dotnet restore --disable-parallel --verbosity normal
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image
-        working-directory: SolarDataController
+        working-directory: ./SolarDataController
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker build -f Dockerfile -t ghcr.io/$REPO_NAME/solardatacontroller:latest .
 
       - name: Push Docker image to GHCR
-        working-directory: SolarDataController  # Ensure correct working directory
+        working-directory: ./SolarDataController  # Ensure correct working directory
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker push ghcr.io/$REPO_NAME/solardatacontroller:latest
