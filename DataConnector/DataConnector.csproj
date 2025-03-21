@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PackageId>DataConnector</PackageId>
-        <Version>0.1.1</Version>
+        <PackageId>FraserHobbs.DataConnector</PackageId>
+        <Version>0.2.0</Version>
         <Authors>Fraser Hobbs</Authors>
         <Description>A connector library for data operations.</Description>
         <RepositoryUrl>https://github.com/fraser-hobbs/HonoursProject</RepositoryUrl>
