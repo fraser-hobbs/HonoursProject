@@ -28,6 +28,7 @@ public class CsvLoader
         }
 
         var records = new List<Record>();
+        int rowIndex = 0;
 
         using var reader = new StreamReader(_csvPath);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -41,10 +42,13 @@ public class CsvLoader
 
         foreach (DataRow row in dt.Rows)
         {
+            rowIndex++;
+
             var dateStr = row["Date"].ToString();
             if (!DateTime.TryParse(dateStr, out var baseDate))
             {
-                Console.WriteLine($"Skipping row with invalid date: {dateStr}");
+                Console.WriteLine($"⚠️ Skipping row {rowIndex} with invalid date: '{dateStr}' in file '{_csvPath}'");
+                Console.WriteLine($"  → Row contents: {string.Join(", ", row.ItemArray.Select(item => item?.ToString() ?? "[null]"))}");
                 continue;
             }
 
