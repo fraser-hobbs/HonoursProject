@@ -119,7 +119,7 @@ public class CsvDataFeed : IDataFeedService
         {
             var record = allRecords[index];
 
-            var emulatedTimestamp = now.Date.AddMinutes((index - startIndex) * 30);
+            var emulatedTimestamp = now.AddMinutes((index - startIndex) * 30);
             var emulatedRecord = new
             {
                 TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ss"),
