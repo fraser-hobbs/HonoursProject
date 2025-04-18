@@ -46,7 +46,7 @@ public class CsvLoader
             rowIndex++;
 
             var dateStr = row[0]?.ToString();
-            if (!DateTime.TryParse(dateStr, out var baseDate))
+            if (!DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var baseDate))
             {
                 Console.WriteLine($"⚠️ Skipping row {rowIndex} with invalid date: '{dateStr}' in file '{_csvPath}'");
                 Console.WriteLine($"  → Row contents: {string.Join(", ", row.ItemArray.Select(item => item?.ToString() ?? "[null]"))}");
