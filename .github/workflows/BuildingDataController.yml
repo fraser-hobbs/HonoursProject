@@ -49,7 +49,7 @@ jobs:
           docker build -f Dockerfile \
             --build-arg GITHUB_PAT=${{ secrets.GITHUB_TOKEN }} \
             --build-arg GITHUB_USR=${{ github.actor }} \
-            -t ghcr.io/$REPO_NAME/BuildingDataController:latest .
+            -t ghcr.io/$REPO_NAME/buildingdatacontroller:latest .
 
       - name: Push Docker image to GHCR
         working-directory: ./BuildingDataController  # Ensure correct working directory
