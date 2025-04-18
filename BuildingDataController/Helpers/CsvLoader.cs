@@ -40,11 +40,12 @@ public class CsvLoader
         var dt = new DataTable();
         dt.Load(dr);
 
+        // First column is assumed to be "Date", remaining are half-hour intervals (e.g., 00:00, 00:30, ...)
         foreach (DataRow row in dt.Rows)
         {
             rowIndex++;
 
-            var dateStr = row["Date"].ToString();
+            var dateStr = row[0]?.ToString();
             if (!DateTime.TryParse(dateStr, out var baseDate))
             {
                 Console.WriteLine($"⚠️ Skipping row {rowIndex} with invalid date: '{dateStr}' in file '{_csvPath}'");
@@ -52,22 +53,19 @@ public class CsvLoader
                 continue;
             }
 
-            foreach (DataColumn col in dt.Columns)
+            for (int colIndex = 1; colIndex < dt.Columns.Count; colIndex++)
             {
-                var timeStr = col.ColumnName;
-                if (timeStr == "Date" || timeStr == "Channel")
-                    continue;
-
+                var timeStr = dt.Columns[colIndex].ColumnName;
                 if (!TimeSpan.TryParse(timeStr, out var timeOfDay))
                 {
-                    Console.WriteLine($"Skipping column with invalid time: {timeStr}");
+                    Console.WriteLine($"⚠️ Skipping column {colIndex} with invalid time header: '{timeStr}'");
                     continue;
                 }
 
-                var valueStr = row[timeStr]?.ToString();
+                var valueStr = row[colIndex]?.ToString();
                 if (!double.TryParse(valueStr, out var value))
                 {
-                    Console.WriteLine($"Skipping value at {baseDate.Date + timeOfDay}: {valueStr}");
+                    Console.WriteLine($"⚠️ Skipping value at {baseDate:dd/MM/yyyy} {timeStr}: '{valueStr}'");
                     continue;
                 }
 
