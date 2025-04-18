@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Package Building Data Controller
 
 on:
   push:
@@ -55,4 +55,4 @@ jobs:
         working-directory: ./BuildingDataController  # Ensure correct working directory
         run: |
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker push ghcr.io/$REPO_NAME/BuildingDataController:latest
+          docker push ghcr.io/$REPO_NAME/buildingdatacontroller:latest
