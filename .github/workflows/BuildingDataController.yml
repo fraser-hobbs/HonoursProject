@@ -1,0 +1,58 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        run: |
+          if ! dotnet nuget list source | grep -q "github"; then
+            dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+              --name github \
+              --username ${{ github.actor }} \
+              --password ${{ secrets.GITHUB_TOKEN }} \
+              --store-password-in-clear-text
+          else
+            echo "NuGet source 'github' already exists. Skipping addition."
+          fi
+
+      - name: Setup .NET and Restore Dependencies
+        run: |
+          dotnet restore --disable-parallel --verbosity normal
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        working-directory: ./BuildingDataController
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker build -f Dockerfile \
+            --build-arg GITHUB_PAT=${{ secrets.GITHUB_TOKEN }} \
+            --build-arg GITHUB_USR=${{ github.actor }} \
+            -t ghcr.io/$REPO_NAME/BuildingDataController:latest .
+
+      - name: Push Docker image to GHCR
+        working-directory: ./BuildingDataController  # Ensure correct working directory
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker push ghcr.io/$REPO_NAME/BuildingDataController:latest

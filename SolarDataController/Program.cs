@@ -3,6 +3,7 @@ using DataConnector.Interfaces;
 using DataConnector.Services; // ✅ Added to resolve NullDataConnector
 using SolarDataController;
 using SolarDataController.Services;
+using NullDataConnector = DataConnector.Services.NullDataConnector;
 
 var isDevelopmentMode = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development";
 
@@ -28,7 +29,7 @@ var host = Host.CreateDefaultBuilder(args)
         }
         else
         {
-            services.AddSingleton<IDataConnector, NullDataConnector>(); // ✅ Now correctly recognized
+            services.AddSingleton<IDataConnector, NullDataConnector>();
         }
 
         services.AddHttpClient<DataFetcher>();
