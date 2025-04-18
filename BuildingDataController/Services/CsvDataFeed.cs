@@ -119,18 +119,24 @@ public class CsvDataFeed : IDataFeedService
         {
             var record = allRecords[index];
 
-                var emulatedTimestamp = now.Date.AddMinutes((index - startIndex) * 30);
-                var emulatedRecord = new
-                {
-                    TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    record.Value,
-                    record.BuildingId
-                };
-                _logger.LogInformation("Sending Record: {Record}", JsonSerializer.Serialize(emulatedRecord));
+            var emulatedTimestamp = now.Date.AddMinutes((index - startIndex) * 30);
+            var emulatedRecord = new
+            {
+                TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ss"),
+                record.Value,
+                record.BuildingId
+            };
+
+            _logger.LogInformation("Sending Record: {Record}", JsonSerializer.Serialize(emulatedRecord));
 
             if (_dataConnector is not DataConnector.Services.NullDataConnector)
             {
-                await _dataConnector.SendMessageAsync(record);
+                await _dataConnector.SendMessageAsync(new Record
+                {
+                    TimeStamp = emulatedTimestamp,
+                    Value = record.Value,
+                    BuildingId = record.BuildingId
+                });
             }
 
             for (int i = 5; i <= 30; i += 5)
