@@ -85,8 +85,11 @@ public class CsvDataFeed : IDataFeedService
 
         // PRODUCTION / LIVE LOGIC
         var now = DateTime.Now;
-        var currentDayOfWeek = now.DayOfWeek;
-        var currentTime = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute < 30 ? 0 : 30, 0).TimeOfDay;
+        var roundedNow = now.Minute < 30
+            ? new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0)
+            : new DateTime(now.Year, now.Month, now.Day, now.Hour, 30, 0);
+        var currentDayOfWeek = roundedNow.DayOfWeek;
+        var currentTime = roundedNow.TimeOfDay;
 
         // Find the first date in the CSV with the same DayOfWeek as today
         var csvStartDate = allRecords.First().TimeStamp.Date;
@@ -119,10 +122,10 @@ public class CsvDataFeed : IDataFeedService
         {
             var record = allRecords[index];
 
-            var emulatedTimestamp = now.AddMinutes((index - startIndex) * 30);
+            var emulatedTimestamp = DateTime.SpecifyKind(roundedNow.AddMinutes((index - startIndex) * 30), DateTimeKind.Utc);
             var emulatedRecord = new
             {
-                TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ss"),
+                TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 record.Value,
                 record.BuildingId
             };

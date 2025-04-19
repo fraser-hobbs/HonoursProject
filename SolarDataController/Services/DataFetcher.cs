@@ -55,7 +55,7 @@ namespace SolarDataController.Services
                     records.Add(new Record
                     {
                         GspId = recordArray.ElementAt(0).GetInt32(),
-                        GmtTimestamp = DateTime.Parse(recordArray.ElementAt(1).GetString()!),
+                        Timestamp = DateTime.Parse(recordArray.ElementAt(1).GetString()!).ToUniversalTime(),
                         GenerationMw = recordArray.ElementAt(2).GetDouble()
                     });
                 }
