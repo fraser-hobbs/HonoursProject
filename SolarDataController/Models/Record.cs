@@ -2,7 +2,7 @@ namespace SolarDataController.Models;
 
 public class Record
 {
-    public int GspId { get; set; }
+    public int ArrayId { get; set; }
     public DateTime Timestamp { get; set; }
-    public double GenerationMw { get; set; }
+    public double Value { get; set; }
 }

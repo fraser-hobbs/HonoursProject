@@ -73,7 +73,7 @@ public class CsvLoader
 
                 records.Add(new Record
                 {
-                    TimeStamp = timeStamp,
+                    Timestamp = timeStamp,
                     Value = value,
                     BuildingId = _sourceId
                 });

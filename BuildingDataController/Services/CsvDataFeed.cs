@@ -21,7 +21,7 @@ public class CsvDataFeed : IDataFeedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var allRecords = _csvLoader.Load().OrderBy(r => r.TimeStamp).ToList();
+        var allRecords = _csvLoader.Load().OrderBy(r => r.Timestamp).ToList();
 
         if (!allRecords.Any())
         {
@@ -44,7 +44,7 @@ public class CsvDataFeed : IDataFeedService
 
             // Step 1: Find the correct starting record matching day of week and time
             var startRecord = allRecords.FirstOrDefault(r =>
-                r.TimeStamp.DayOfWeek == simulatedDayOfWeek && r.TimeStamp.TimeOfDay == TimeSpan.Zero);
+                r.Timestamp.DayOfWeek == simulatedDayOfWeek && r.Timestamp.TimeOfDay == TimeSpan.Zero);
 
             if (startRecord == null)
             {
@@ -52,11 +52,11 @@ public class CsvDataFeed : IDataFeedService
                 startRecord = allRecords.First();
             }
 
-            var startDate = startRecord.TimeStamp.Date;
+            var startDate = startRecord.Timestamp.Date;
 
             var targetTime = new DateTime(startDate.Year, startDate.Month, startDate.Day, currentRoundedTime.Hours, currentRoundedTime.Minutes, 0);
 
-            var debugStartIndex = allRecords.FindIndex(r => r.TimeStamp == targetTime);
+            var debugStartIndex = allRecords.FindIndex(r => r.Timestamp == targetTime);
 
             if (debugStartIndex == -1)
             {
@@ -77,8 +77,8 @@ public class CsvDataFeed : IDataFeedService
                 _logger.LogInformation("Building: {0} | Emulated Date: {1} | CSV Date: {2} {3:HH:mm} | Value: {4}",
                     record.BuildingId,
                     emulatedDateTime.ToString("dd/MM/yyyy HH:mm"),
-                    record.TimeStamp.ToString("dd/MM/yyyy"),
-                    record.TimeStamp,
+                    record.Timestamp.ToString("dd/MM/yyyy"),
+                    record.Timestamp,
                     record.Value);
             }
         }
@@ -92,25 +92,25 @@ public class CsvDataFeed : IDataFeedService
         var currentTime = roundedNow.TimeOfDay;
 
         // Find the first date in the CSV with the same DayOfWeek as today
-        var csvStartDate = allRecords.First().TimeStamp.Date;
-        var csvStartDayOfWeek = allRecords.First().TimeStamp.DayOfWeek;
+        var csvStartDate = allRecords.First().Timestamp.Date;
+        var csvStartDayOfWeek = allRecords.First().Timestamp.DayOfWeek;
 
         var alignedDate = allRecords
-            .Select(r => r.TimeStamp.Date)
+            .Select(r => r.Timestamp.Date)
             .Distinct()
             .FirstOrDefault(d => d.DayOfWeek == currentDayOfWeek);
 
         if (alignedDate == default)
         {
             _logger.LogWarning("No matching day of week found in CSV.");
-            alignedDate = allRecords.First().TimeStamp.Date;
+            alignedDate = allRecords.First().Timestamp.Date;
         }
 
         // Combine aligned date with current interval time
         var alignedStartTime = alignedDate.Add(currentTime);
 
         // Find first record that matches the aligned start time
-        var alignedIndex = allRecords.FindIndex(r => r.TimeStamp == alignedStartTime);
+        var alignedIndex = allRecords.FindIndex(r => r.Timestamp == alignedStartTime);
         if (alignedIndex < 0)
         {
             _logger.LogWarning("No matching start record found. Defaulting to first record.");
@@ -136,7 +136,7 @@ public class CsvDataFeed : IDataFeedService
             {
                 await _dataConnector.SendMessageAsync(new Record
                 {
-                    TimeStamp = emulatedTimestamp,
+                    Timestamp = emulatedTimestamp,
                     Value = record.Value,
                     BuildingId = record.BuildingId
                 });

@@ -54,9 +54,9 @@ namespace SolarDataController.Services
                     var recordArray = item.EnumerateArray();
                     records.Add(new Record
                     {
-                        GspId = recordArray.ElementAt(0).GetInt32(),
+                        ArrayId = recordArray.ElementAt(0).GetInt32(),
                         Timestamp = DateTime.Parse(recordArray.ElementAt(1).GetString()!).ToUniversalTime(),
-                        GenerationMw = recordArray.ElementAt(2).GetDouble()
+                        Value = recordArray.ElementAt(2).GetDouble()
                     });
                 }
 
