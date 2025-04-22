@@ -1,9 +1,10 @@
 using System.Text.Json;
-using BuildingDataController.Helpers;
-using BuildingDataController.Models;
 using DataConnector.Interfaces;
+using SolarDataController.Helpers;
+using SolarDataController.Interfaces;
+using SolarDataController.Models;
 
-namespace BuildingDataController.Services;
+namespace SolarDataController.Services;
 
 public class CsvDataFeed : IDataFeedService
 {
@@ -74,7 +75,7 @@ public class CsvDataFeed : IDataFeedService
                 {
                     TimeStamp = emulatedTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     record.Value,
-                    record.BuildingId
+                    record.ArrayId
                 };
 
                 _logger.LogInformation("Rapid Start - Sending Record: {Record}", JsonSerializer.Serialize(emulatedRecord));
@@ -85,7 +86,7 @@ public class CsvDataFeed : IDataFeedService
                     {
                         Timestamp = emulatedTimestamp,
                         Value = record.Value,
-                        BuildingId = record.BuildingId
+                        ArrayId = record.ArrayId
                     });
                 }
 
@@ -157,8 +158,8 @@ public class CsvDataFeed : IDataFeedService
                 var record = allRecords[index];
                 var emulatedDateTime = simulatedNow.AddMinutes(i * 30);
 
-                _logger.LogInformation("Building: {0} | Emulated Date: {1} | CSV Date: {2} {3:HH:mm} | Value: {4}",
-                    record.BuildingId,
+                _logger.LogInformation("Array: {0} | Emulated Date: {1} | CSV Date: {2} {3:HH:mm} | Value: {4}",
+                    record.ArrayId,
                     emulatedDateTime.ToString("dd/MM/yyyy HH:mm"),
                     record.Timestamp.ToString("dd/MM/yyyy"),
                     record.Timestamp,
@@ -176,7 +177,7 @@ public class CsvDataFeed : IDataFeedService
             {
                 TimeStamp = alignedNextLiveStart.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 record.Value,
-                record.BuildingId
+                record.ArrayId
             };
 
             _logger.LogInformation("Sending Record: {Record}", JsonSerializer.Serialize(emulatedRecord));
@@ -187,7 +188,7 @@ public class CsvDataFeed : IDataFeedService
                 {
                     Timestamp = alignedNextLiveStart,
                     Value = record.Value,
-                    BuildingId = record.BuildingId
+                    ArrayId = record.ArrayId
                 });
             }
 

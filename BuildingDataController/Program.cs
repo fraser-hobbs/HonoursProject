@@ -45,6 +45,7 @@ var host = Host.CreateDefaultBuilder(args)
         else
         {
             Console.WriteLine("Real Time Data Feed");
+            Console.WriteLine("Not Implemented");
             // services.AddSingleton<IDataFeedService, RealTimeDataFeed>();
         }
 

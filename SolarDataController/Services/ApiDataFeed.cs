@@ -1,28 +1,28 @@
 using System.Net.Http;
 using System.Text.Json;
+using DataConnector.Interfaces;
 using Microsoft.Extensions.Logging;
 using SolarDataController.Models;
+using SolarDataController.Interfaces;
+using SolarDataController.Helpers;
 
 namespace SolarDataController.Services
 {
-    public class DataFetcher
+    public class ApiDataFeed : IDataFeedService
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<DataFetcher> _logger;
+        private readonly ILogger<ApiDataFeed> _logger;
+        private readonly IDataConnector _dataConnector;
         private static readonly string BaseUrl = "https://api.pvlive.uk/pvlive/api/v4/gsp/0";
 
-        public DataFetcher(HttpClient httpClient, ILogger<DataFetcher> logger) 
+        public ApiDataFeed(HttpClient httpClient, IDataConnector dataConnector, ILogger<ApiDataFeed> logger)
         {
             _httpClient = httpClient;
+            _dataConnector = dataConnector;
             _logger = logger;
         }
-        
-        public DataFetcher(HttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
 
-        public async Task<List<Record>> FetchSolarDataAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             DateTime endTime = DateTime.UtcNow;
             DateTime startTime = endTime.AddMinutes(-30);
@@ -39,7 +39,6 @@ namespace SolarDataController.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError("Failed to fetch data. HTTP Status: {StatusCode}", response.StatusCode);
-                    return new List<Record>();
                 }
 
                 string jsonResponse = await response.Content.ReadAsStringAsync();
@@ -54,19 +53,17 @@ namespace SolarDataController.Services
                     var recordArray = item.EnumerateArray();
                     records.Add(new Record
                     {
-                        ArrayId = recordArray.ElementAt(0).GetInt32(),
+                        ArrayId = recordArray.ElementAt(0).ToString(),
                         Timestamp = DateTime.Parse(recordArray.ElementAt(1).GetString()!).ToUniversalTime(),
                         Value = recordArray.ElementAt(2).GetDouble()
                     });
                 }
 
                 _logger.LogInformation("Successfully fetched {Count} records", records.Count);
-                return records;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching solar data");
-                return new List<Record>();
             }
         }
     }

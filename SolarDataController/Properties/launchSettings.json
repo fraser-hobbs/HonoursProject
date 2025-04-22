@@ -5,7 +5,11 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "DATA_MODE": "csv",
+        "CSV_PATH": "../DataSets/SolarA.csv",
+        "ARRAY_ID": "solar-0x1",
+        "RAPID_START": true
       }
     }
   }
