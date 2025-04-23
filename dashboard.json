@@ -1,0 +1,900 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "baseValueField": "history",
+        "baseValueFontSize": "16px",
+        "interpretAsTrend": true,
+        "percentageNrDecimals": 2,
+        "percentageValueField": "today",
+        "percentageValueFontSize": "100%",
+        "positiveIsGood": false,
+        "referenceText": "Demand Today Vs Same Day Over x amount of weeks",
+        "referenceTextFontSize": "12px",
+        "unit": "kwatt"
+      },
+      "pluginVersion": "1.0.8",
+      "targets": [
+        {
+          "query": "import \"date\"\n\n// Set key times\ntodayStart = date.truncate(t: now(), unit: 1d)\ntodayStop = now()\ncurrentDay = date.weekDay(t: todayStart)\nhistoryStart = date.add(d: -14d, to: todayStart)\nhistoryStop = date.add(d: -1d, to: todayStart)\n\n// --- TODAY (Demand - Generation) ---\n\ntodayDemand = from(bucket: \"building-data\")\n  |> range(start: todayStart, stop: todayStop)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> group()\n  |> sum(column: \"_value\")\n  |> map(fn: (r) => ({ _time: todayStart, _value: r._value, _field: \"demand\" }))\n\ntodaySolar = from(bucket: \"solar-data\")\n  |> range(start: todayStart, stop: todayStop)\n  |> filter(fn: (r) => r._measurement == \"solar_power\" and r._field == \"value\")\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> group()\n  |> sum(column: \"_value\")\n  |> map(fn: (r) => ({ _time: todayStart, _value: r._value, _field: \"solar\" }))\n\ntodayNet = join(\n  tables: {demand: todayDemand, solar: todaySolar},\n  on: [\"_time\"]\n)\n|> map(fn: (r) => ({ _time: r._time, today: r._value_demand - r._value_solar }))\n\n// --- HISTORY (Same weekday: Demand - Generation) ---\n\nhistoryDemand = from(bucket: \"building-data\")\n  |> range(start: historyStart, stop: historyStop)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> filter(fn: (r) => date.weekDay(t: r._time) == currentDay)\n  |> aggregateWindow(every: 1d, fn: sum)\n  |> group()\n  |> mean(column: \"_value\")\n  |> map(fn: (r) => ({ _time: todayStart, _value: r._value, _field: \"demand\" }))\n\nhistorySolar = from(bucket: \"solar-data\")\n  |> range(start: historyStart, stop: historyStop)\n  |> filter(fn: (r) => r._measurement == \"solar_power\" and r._field == \"value\")\n  |> filter(fn: (r) => date.weekDay(t: r._time) == currentDay)\n  |> aggregateWindow(every: 1d, fn: sum)\n  |> group()\n  |> mean(column: \"_value\")\n  |> map(fn: (r) => ({ _time: todayStart, _value: r._value, _field: \"solar\" }))\n\nhistoryNet = join(\n  tables: {demand: historyDemand, solar: historySolar},\n  on: [\"_time\"]\n)\n|> map(fn: (r) => ({ _time: r._time, history: r._value_demand - r._value_solar }))\n\n// --- Final join (today vs. history on same row)\n\njoin(\n  tables: {today: todayNet, history: historyNet},\n  on: [\"_time\"]\n)",
+          "refId": "A"
+        }
+      ],
+      "title": "Vs Previous Same Day From Past 2 Weeks",
+      "transparent": true,
+      "type": "nikosc-percenttrend-panel"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "description": "Total Power Usage from all Consumer Sources\n",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "max": 200,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 180
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 11,
+      "options": {
+        "minVizHeight": 66,
+        "minVizWidth": 75,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^_value$/",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto",
+        "text": {}
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "from(bucket: \"building-data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> group(columns: [\"buildingId\"])\n  |> last() // get latest value for each building\n  |> group() // regroup to merge all into one table\n  |> sum(column: \"_value\") // total across buildings\n  |> map(fn: (r) => ({\n      _time: r._time,\n      _value: r._value,\n      _field: \"Total Demand (kW)\"\n  }))",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Demand",
+      "transparent": true,
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "description": "Total Power Generation from all Solar Arrays\n",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 12,
+      "options": {
+        "minVizHeight": 66,
+        "minVizWidth": 75,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^_value$/",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto",
+        "text": {}
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "from(bucket: \"solar-data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"solar_power\" and r._field == \"value\")\n  |> group(columns: [\"arrayId\"])\n  |> last() // get latest value for each array\n  |> group() // regroup to merge all into one table\n  |> sum(column: \"_value\") // total across arrays\n  |> map(fn: (r) => ({\n      _time: r._time,\n      _value: r._value,\n      _field: \"Total Generation\"\n  }))",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Generation",
+      "transparent": true,
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 13,
+      "options": {
+        "allowNeedleCrossLimits": true,
+        "animateNeedleValueTransition": true,
+        "animateNeedleValueTransitionSpeed": 100,
+        "edgeWidth": 0.05,
+        "gaugeRadius": 0,
+        "innerColor": "#00000014",
+        "markerEndEnabled": true,
+        "markerEndShape": "arrow",
+        "markerStartEnabled": false,
+        "markerStartShape": "arrow",
+        "maxNeedleAngle": 320,
+        "maxTickAngle": 300,
+        "maxValue": 100,
+        "minValue": -100,
+        "needleColor": "orange",
+        "needleCrossLimitDegrees": 10,
+        "needleLengthNeg": 0,
+        "needleTickGap": 0.05,
+        "needleWidth": 5,
+        "operatorName": "first",
+        "outerEdgeColor": "transparent",
+        "padding": 0.05,
+        "pivotColor": "transparent",
+        "pivotRadius": 0.1,
+        "showThresholdBandLowerRange": true,
+        "showThresholdBandMiddleRange": true,
+        "showThresholdBandOnGauge": true,
+        "showThresholdBandUpperRange": true,
+        "showThresholdStateOnBackground": false,
+        "showThresholdStateOnValue": false,
+        "tickEdgeGap": 0.05,
+        "tickFont": "Inter",
+        "tickLabelColor": "text",
+        "tickLabelFontSize": 18,
+        "tickLengthMaj": 0.15,
+        "tickLengthMin": 0.05,
+        "tickMajorColor": "#000000",
+        "tickMapConfig": {
+          "tickMaps": []
+        },
+        "tickMinorColor": "#000000",
+        "tickSpacingMajor": 20,
+        "tickSpacingMinor": 1,
+        "tickWidthMajor": 2,
+        "tickWidthMinor": 1,
+        "ticknessGaugeBasis": 200,
+        "unitsLabelColor": "text",
+        "valueFont": "Inter",
+        "valueFontSize": 22,
+        "valueYOffset": 0,
+        "zeroNeedleAngle": 40,
+        "zeroTickAngle": 60
+      },
+      "pluginVersion": "2.0.1",
+      "targets": [
+        {
+          "query": "// DEMAND (kW)\ndemand = from(bucket: \"building-data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> group(columns: [\"buildingId\"])\n  |> last()\n  |> group()\n  |> sum(column: \"_value\")\n  |> map(fn: (r) => ({\n      _time: r._time,\n      _value: r._value,\n      _field: \"power\" // normalize\n  }))\n\n// SOLAR (W → kW)\nsolar = from(bucket: \"solar-data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"solar_power\" and r._field == \"value\")\n  |> group(columns: [\"arrayId\"])\n  |> last()\n  |> group()\n  |> sum(column: \"_value\")\n  |> map(fn: (r) => ({\n      _time: r._time,\n      _value: r._value / 1000.0,\n      _field: \"power\" // same name for join\n  }))\n\n// NET GRID IMPORT = Demand - Generation\nnetImport = join(\n  tables: {demand: demand, solar: solar},\n  on: [\"_field\"],\n  method: \"inner\"\n)\n|> map(fn: (r) => ({\n  _time: r._time,\n  _value: r._value_demand - r._value_solar,\n  _field: \"Power Import\"\n}))\n\n// YIELD FOR DEBUGGING\nnetImport |> yield(name: \"Import\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Power Import/Export",
+      "transparent": true,
+      "type": "briangann-gauge-panel"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-red",
+            "mode": "palette-classic",
+            "seriesBy": "last"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 10,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Solar Array 0"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "timezone": [
+          "utc"
+        ],
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "import \"experimental/aggregate\"\n\n// Dynamically load all building data\nbuildings = from(bucket: \"building-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"building_power\" and\n    r._field == \"value\"\n  )\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> map(fn: (r) => ({\n    _time: r._time,\n    _value: r._value,\n    _field: string(v: r.buildingId)\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n\n// Dynamically load all solar arrays\nsolar = from(bucket: \"solar-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"solar_power\" and\n    r._field == \"value\"\n  )\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> map(fn: (r) => ({\n    _time: r._time,\n    _value: r._value,\n    _field: \"Solar Array \" + string(v: r.arrayId)\n  }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n\n// Combine into one dataset\nunion(tables: [buildings, solar])",
+          "refId": "A"
+        }
+      ],
+      "title": "Combined Power Demand And Solar Generation Overview",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "value building-0x1"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "from(bucket: \"building-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> filter(fn: (r) => r[\"buildingId\"] == \"building-0x1\")\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> yield(name: \"Building 0x1\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Building Demand - 0x1",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "from(bucket: \"building-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> filter(fn: (r) => r[\"buildingId\"] == \"building-0x2\")\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> yield(name: \"Building 0x2\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Building Demand - 0x2",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "timezone": [
+          "utc"
+        ],
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "query": "from(bucket: \"solar-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"solar_power\" and r._field == \"value\" and r[\"arrayId\"] == \"solar-0x1\")\n  |> aggregateWindow(every: 30m, fn: mean)\n  |> map(fn: (r) => ({ _time: r._time, _value: r._value, _field: \"Solar Array 0x1\" }))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Solar Production - Solar Array 0x1",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "aejp5t28ufjswe"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Avg Demand",
+            "axisPlacement": "hidden",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kwatt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 14,
+      "interval": "10",
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "Time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "deji25s6t5xxca"
+          },
+          "query": "import \"date\"\nimport \"strings\" // ✅ required for substring()\n\n// Parameters from Grafana\ncustomRangeStr = \"${customRange}\"\ndayOfWeekStr = \"${dayOfWeek}\"\n\ncustomRange = duration(v: customRangeStr)\ndayOfWeek = int(v: dayOfWeekStr)\n\n// Pull & format the data\nfrom(bucket: \"building-data\")\n  |> range(start: -customRange)\n  |> filter(fn: (r) => r._measurement == \"building_power\" and r._field == \"value\")\n  |> filter(fn: (r) => dayOfWeek == -1 or date.weekDay(t: r._time) == dayOfWeek)\n  |> aggregateWindow(every: 30m, fn: mean, createEmpty: false)\n  |> map(fn: (r) => {\n    tStr = string(v: r._time)                      // \"2024-04-21T00:30:00Z\"\n    datePart = strings.substring(v: tStr, start: 0, end: 10)  // \"2024-04-21\"\n    timePart = strings.substring(v: tStr, start: 11, end: 19) // \"00:30:00\"\n\n    return {\n      _date: time(v: datePart + \"T00:00:00Z\"),\n      _time: time(v: \"2000-01-01T\" + timePart + \"Z\"),\n      _value: r._value\n    }\n  })\n  |> keep(columns: [\"_date\", \"_time\", \"_value\"])\n  |> yield(name: \"Time of Day by Date\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Sliding Average Demand for Time of Day",
+      "transparent": true,
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "refresh": "30m",
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "1",
+          "value": "1"
+        },
+        "label": "Day Of Week",
+        "name": "dayOfWeek",
+        "options": [
+          {
+            "selected": false,
+            "text": "All",
+            "value": "-1"
+          },
+          {
+            "selected": false,
+            "text": "Sunday",
+            "value": "0"
+          },
+          {
+            "selected": true,
+            "text": "Monday",
+            "value": "1"
+          },
+          {
+            "selected": false,
+            "text": "Tuesday",
+            "value": "2"
+          },
+          {
+            "selected": false,
+            "text": "Wednesday",
+            "value": "3"
+          },
+          {
+            "selected": false,
+            "text": "Thursday",
+            "value": "4"
+          },
+          {
+            "selected": false,
+            "text": "Friday",
+            "value": "5"
+          },
+          {
+            "selected": false,
+            "text": "Saturday",
+            "value": "6"
+          }
+        ],
+        "query": "All : -1, Sunday : 0, Monday : 1, Tuesday : 2, Wednesday : 3, Thursday : 4, Friday : 5, Saturday : 6",
+        "type": "custom"
+      },
+      {
+        "current": {
+          "text": "14d",
+          "value": "14d"
+        },
+        "name": "customRange",
+        "options": [
+          {
+            "selected": true,
+            "text": "Last 2 Weeks",
+            "value": "14d"
+          },
+          {
+            "selected": false,
+            "text": "Last 30 Days",
+            "value": "-30d"
+          },
+          {
+            "selected": false,
+            "text": "Last 3 Months",
+            "value": "-90d"
+          },
+          {
+            "selected": false,
+            "text": "Last 6 Months",
+            "value": "-180d"
+          },
+          {
+            "selected": false,
+            "text": "Last Year",
+            "value": "-365d"
+          }
+        ],
+        "query": "Last 2 Weeks : 14d ,Last 30 Days : -30d, Last 3 Months : -90d, Last 6 Months : -180d, Last Year : -365d",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-14d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "Main Dashboard",
+  "uid": "eeji33qrr2by8c",
+  "version": 28
+}
