@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - Tunnel
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - Tunnel
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8080:8080"
+    networks:
+      - Tunnel
+
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: my-org
+      DOCKER_INFLUXDB_INIT_BUCKET: my-bucket
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: VDE3Y8QHvUE39t2ZsHOIwsLNzpKfH4vX-Zcw5VwzZakIgD_3ROgZe3FD5oS9twIHm_AR6392ZX-F2-Jci0M0zg==
+    networks:
+      - Tunnel
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - influxdb
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    networks:
+      - Tunnel
+
+
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    depends_on:
+      - influxdb
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - /root/HonoursProj/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUX_TOKEN=VDE3Y8QHvUE39t2ZsHOIwsLNzpKfH4vX-Zcw5VwzZakIgD_3ROgZe3FD5oS9twIHm_AR6392ZX-F2-Jci0M0zg==
+      - INFLUXDB_ORG=my-org
+      - INFLUXDB_BUCKET=solar_data
+    command: ["telegraf", "--config", "/etc/telegraf/telegraf.conf"]
+    networks:
+      - Tunnel
+
+  solardatacontroller:
+    image: ghcr.io/fraser-hobbs/honoursproject/solardatacontroller:latest
+    container_name: solardatacontroller
+    environment:
+      - RAPID_START=true
+      - DATA_MODE=csv
+      - CSV_PATH=Data/SolarA.csv
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=solar_data
+    volumes:
+      - /root/Data:/app/Data:ro
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    networks:
+      - Tunnel
+
+  buildingcontroller-a:
+    image: ghcr.io/fraser-hobbs/honoursproject/buildingdatacontroller:latest
+    container_name: buildingcontroller-a
+    depends_on:
+      - kafka
+    environment:
+      - DATA_MODE=csv
+      - CSV_PATH=Data/BuildingA.csv
+      - BUILDING_ID=building-0x1
+      - DEBUG_PREVIEW=false
+      - RAPID_START=true
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=building_data
+    volumes:
+      - /root/Data:/app/Data:ro
+    restart: unless-stopped
+    networks:
+      - Tunnel
+
+  buildingcontroller-b:
+    image: ghcr.io/fraser-hobbs/honoursproject/buildingdatacontroller:latest
+    container_name: buildingcontroller-b
+    depends_on:
+      - kafka
+    environment:
+      - DATA_MODE=csv
+      - CSV_PATH=Data/BuildingB.csv
+      - BUILDING_ID=building-0x2
+      - RAPID_START=true
+      - DEBUG_PREVIEW=false
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=building_data
+    volumes:
+      - /root/Data:/app/Data:ro
+    restart: unless-stopped
+    networks:
+      - Tunnel
+
+networks:
+  Tunnel:
+    external: true
